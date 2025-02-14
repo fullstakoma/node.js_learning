@@ -64,8 +64,8 @@
     <!-- ユーザー削除フォーム -->
     <h2>ユーザー削除</h2>
     <form id="deleteForm">
-      <label for="deleteId">ユーザーID:</label>
-      <input type="text" id="deleteId" required />
+      <label for="deleteEmail">メール:</label>
+      <input type="text" id="deleteEmail" required />
       <button type="submit">削除</button>
     </form>
     <div id="deleteResult"></div>
@@ -88,6 +88,10 @@
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ name, email, password }),
             });
+            const contentType = res.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+              throw new Error("Unexpected response: " + (await res.text()));
+            }
             const data = await res.json();
             document.getElementById("registerResult").innerText = res.ok
               ? "登録成功！"
@@ -154,16 +158,19 @@
           }
         });
 
-      // ユーザー削除処理
+      // ユーザー削除処理（メールアドレスで削除）
       document
         .getElementById("deleteForm")
         .addEventListener("submit", async function (e) {
           e.preventDefault();
-          const id = document.getElementById("deleteId").value;
+          const email = document.getElementById("deleteEmail").value;
           try {
-            const res = await fetch(`${apiBase}/users/${id}`, {
-              method: "DELETE",
-            });
+            const res = await fetch(
+              `${apiBase}/users?email=${encodeURIComponent(email)}`,
+              {
+                method: "DELETE",
+              }
+            );
             const data = await res.json();
             document.getElementById("deleteResult").innerText = res.ok
               ? "削除成功！"

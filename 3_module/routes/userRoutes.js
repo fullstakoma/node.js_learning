@@ -85,4 +85,22 @@ router.get("/users", async (req, res) => {
   }
 });
 
+router.delete("/users", async (req, res) => {
+  const { email } = req.query;
+  if (!email) {
+    return res.status(400).json({ error: "メールアドレスが必要です" });
+  }
+  try {
+    const result = await User.findOneAndDelete({ email });
+    if (!result) {
+      return res
+        .status(404)
+        .json({ error: "指定されたメールアドレスのユーザーが存在しません" });
+    }
+    res.json({ message: "ユーザーが削除されました" });
+  } catch (err) {
+    res.status(500).json({ error: "削除時にエラーが発生しました" });
+  }
+});
+
 module.exports = router;

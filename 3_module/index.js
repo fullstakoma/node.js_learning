@@ -64,6 +64,14 @@ app.get("/api/status", (req, res) => {
   });
 });
 
+// 404エラーハンドリング（/apiパスの場合はJSON形式でエラーを返す）
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api")) {
+    return res.status(404).json({ error: "Not Found" });
+  }
+  next();
+});
+
 // アプリケーション起動
 (async () => {
   try {

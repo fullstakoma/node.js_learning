@@ -6,6 +6,7 @@ const config = {
       socketTimeoutMS: 45000,
       connectTimeoutMS: 10000,
       family: 4, // IPv4を強制
+      useUnifiedTopology: true, // 追加
     },
   },
   test: {
