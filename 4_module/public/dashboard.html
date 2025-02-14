@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ダッシュボード</title>
+    <style>
+      .container {
+        max-width: 800px;
+        margin: 50px auto;
+        padding: 20px;
+      }
+      .user-info {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+      }
+      .danger-zone {
+        margin-top: 30px;
+        padding: 20px;
+        border: 1px solid #dc3545;
+        border-radius: 5px;
+      }
+      .danger-zone h2 {
+        color: #dc3545;
+      }
+      .button-group {
+        display: flex;
+        gap: 10px;
+      }
+      button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .danger-button {
+        background-color: #dc3545;
+        color: white;
+      }
+      .confirm-dialog {
+        display: none;
+        margin-top: 15px;
+      }
+      .user-list {
+        margin-top: 20px;
+      }
+      .user-list table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .user-list th,
+      .user-list td {
+        padding: 8px;
+        border: 1px solid #ddd;
+        text-align: left;
+      }
+      .user-list th {
+        background-color: #f8f9fa;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>ダッシュボード</h1>
+      <div class="user-info">
+        <p>ようこそ <span id="username"></span> さん</p>
+        <p>アカウント作成日: <span id="createdAt"></span></p>
+        <p>ユーザーロール: <span id="userRole"></span></p>
+      </div>
+
+      <div class="user-list">
+        <h2>ユーザー一覧</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ユーザー名</th>
+              <th>作成日</th>
+              <th>ロール</th>
+            </tr>
+          </thead>
+          <tbody id="userListBody"></tbody>
+        </table>
+      </div>
+
+      <div class="danger-zone">
+        <h2>アカウント削除</h2>
+        <p>アカウントを削除すると、すべてのデータが永久に失われます。</p>
+        <div class="button-group">
+          <button class="danger-button" onclick="showDeleteConfirmation()">
+            アカウントを削除
+          </button>
+          <button onclick="logout()">ログアウト</button>
+        </div>
+        <div id="deleteConfirm" class="confirm-dialog">
+          <p>本当にアカウントを削除しますか？</p>
+          <div class="button-group">
+            <button class="danger-button" onclick="deleteAccount()">
+              はい、削除します
+            </button>
+            <button onclick="hideDeleteConfirmation()">キャンセル</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      // ユーザー情報の取得と表示
+      fetch("/api/protected")
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            document.getElementById("username").textContent =
+              data.user.username;
+            document.getElementById("createdAt").textContent = new Date(
+              data.user.createdAt
+            ).toLocaleString();
+            document.getElementById("userRole").textContent = data.user.role;
+          } else {
+            window.location.href = "/";
+          }
+        })
+        .catch(() => {
+          window.location.href = "/";
+        });
+
+      // ユーザー一覧の取得と表示を改善
+      fetch("/api/users", {
+        credentials: "same-origin", // セッションCookieを含める
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then((data) => {
+          console.log("Users data:", data);
+          const tbody = document.getElementById("userListBody");
+          if (data.status === "success" && Array.isArray(data.users)) {
+            tbody.innerHTML = data.users
+              .map(
+                (user) => `
+              <tr>
+                <td>${user.username}</td>
+                <td>${new Date(user.createdAt).toLocaleString()}</td>
+                <td>${user.role}</td>
+              </tr>
+            `
+              )
+              .join("");
+          } else {
+            throw new Error("Invalid data format");
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching users:", error);
+          document.getElementById("userListBody").innerHTML =
+            '<tr><td colspan="3">ユーザー情報を取得できませんでした</td></tr>';
+        });
+
+      function showDeleteConfirmation() {
+        document.getElementById("deleteConfirm").style.display = "block";
+      }
+
+      function hideDeleteConfirmation() {
+        document.getElementById("deleteConfirm").style.display = "none";
+      }
+
+      // アカウント削除関数の改善
+      function deleteAccount() {
+        fetch("/api/delete-account", {
+          method: "DELETE",
+          credentials: "same-origin",
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then((data) => {
+            if (data.status === "success") {
+              alert("アカウントが削除されました");
+              window.location.href = "/";
+            } else {
+              throw new Error(data.message || "削除に失敗しました");
+            }
+          })
+          .catch((error) => {
+            console.error("Delete error:", error);
+            alert(error.message || "エラーが発生しました");
+          });
+      }
+
+      function logout() {
+        fetch("/api/logout", { method: "POST" })
+          .then(() => {
+            window.location.href = "/";
+          })
+          .catch((error) => {
+            console.error("Logout error:", error);
+          });
+      }
+    </script>
+  </body>
+</html>
