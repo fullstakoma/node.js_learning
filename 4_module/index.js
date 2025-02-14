@@ -8,13 +8,29 @@ const User = require("./models/user");
 
 const app = express();
 
+// ユーザー一覧を出力する関数を追加
+async function printUsersList() {
+  console.log("\n=== 現在のユーザー一覧 ===");
+  console.log("-------------------------");
+  const users = await User.find({});
+  users.forEach((user) => {
+    console.log(`ID: ${user._id}`);
+    console.log(`ユーザー名: ${user.username}`);
+    console.log(`ロール: ${user.role}`);
+    console.log(`作成日: ${user.createdAt}`);
+    console.log("-------------------------");
+  });
+  console.log(`合計ユーザー数: ${users.length}`);
+  console.log("=========================\n");
+}
+
 // MongoDBの接続設定を修正
 mongoose
   .connect("mongodb://localhost:27017/auth_system", {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => {
+  .then(async () => {
     console.log("MongoDB connected successfully");
     // データベースの状態を確認
     mongoose.connection.db.stats().then((stats) => {
@@ -24,6 +40,8 @@ mongoose
         indexes: stats.indexes,
       });
     });
+    console.log("\n初期ユーザー一覧:");
+    await printUsersList();
   })
   .catch((err) => {
     console.error("MongoDB connection error:", err);
@@ -99,6 +117,14 @@ app.post("/api/register", async (req, res) => {
       username: savedUser.username,
       role: savedUser.role,
     });
+
+    console.log("新規ユーザーが登録されました:");
+    console.log(`ID: ${savedUser._id}`);
+    console.log(`ユーザー名: ${savedUser.username}`);
+    console.log(`ロール: ${savedUser.role}`);
+
+    // ユーザー一覧を出力
+    await printUsersList();
 
     res.status(201).json({
       status: "success",
@@ -179,7 +205,7 @@ app.post("/api/login", (req, res, next) => {
       });
     }
 
-    req.logIn(user, (err) => {
+    req.logIn(user, async (err) => {
       if (err) {
         console.error("Login error:", err);
         return res.status(500).json({
@@ -198,6 +224,14 @@ app.post("/api/login", (req, res, next) => {
           role: user.role,
         },
       });
+
+      console.log("ユーザーがログインしました:");
+      console.log(`ID: ${user._id}`);
+      console.log(`ユーザー名: ${user.username}`);
+      console.log(`ロール: ${user.role}`);
+
+      // ユーザー一覧を出力
+      await printUsersList();
     });
   })(req, res, next);
 });
@@ -296,6 +330,14 @@ app.delete("/api/delete-account", async (req, res) => {
     remainingUsers.forEach((user) => {
       console.log(`- ${user.username} (${user.role})`);
     });
+
+    console.log("ユーザーが削除されました:");
+    console.log(`ID: ${deletedUser._id}`);
+    console.log(`ユーザー名: ${deletedUser.username}`);
+    console.log(`ロール: ${deletedUser.role}`);
+
+    // ユーザー一覧を出力
+    await printUsersList();
 
     // セッションを破棄
     if (req.session) {
